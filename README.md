@@ -1,6 +1,29 @@
 # Spark Aggregations, Joins and Windows
 
-A practical Apache Spark + Scala project covering the concepts from the supplied project specification: aggregations, grouping, customer analysis, window functions, joins, execution plans, shuffle/sort concepts, and a final combined exercise.
+A practical **Apache Spark + Scala** project implementing the concepts from the supplied project specification: aggregations, grouping, customer analysis, window functions, joins, execution plans, shuffle/sort concepts, and a final combined exercise.
+
+## Project Status
+
+**Completed and verified successfully in Ubuntu/WSL2.**
+
+The project was compiled and executed with:
+
+```text
+Scala 2.12.18
+Apache Spark 3.5.6
+Java 17.0.20
+sbt 2.0.7
+Ubuntu / WSL2
+```
+
+Verification commands:
+
+```bash
+sbt compile
+sbt run
+```
+
+Both commands completed successfully.
 
 ## Technology Stack
 
@@ -17,73 +40,83 @@ A practical Apache Spark + Scala project covering the concepts from the supplied
 spark-aggregations-joins-windows/
 ├── build.sbt
 ├── README.md
+├── OUTPUT.md
 └── src/
     └── main/
         └── scala/
             └── AggregationsJoinsWindows.scala
 ```
 
-## Covered Topics
+## Project Objectives
 
-### Example 1 - Sales Analysis
+This project demonstrates how Spark DataFrames can be used for:
 
-1. Simple aggregation: total, average, minimum, maximum, and order count.
-2. Grouping aggregation by product.
-3. Customer-level aggregation.
-4. Window aggregation with a running total per customer.
-5. Window ranking of each customer's orders by amount.
+- Simple aggregations
+- Grouping and grouped aggregations
+- Customer-level analysis
+- Running totals using window functions
+- Ranking rows within each customer
+- Joining customer and order DataFrames
+- Aggregating data after a join
+- Inspecting Spark execution plans
+- Understanding shuffle and sort stages
+- Combining JOIN, customer-level totals, and WINDOW ranking in one exercise
 
-### Example 2 - Customer and Orders JOIN
+## Example 1 - Sales Analysis
 
-1. Customer and order DataFrames.
-2. Inner join using `customer_id`.
-3. Selecting useful columns after the join.
-4. Aggregation after the join to calculate customer spending and order count.
-5. Extended execution-plan inspection using `explain(true)`.
-6. The execution-plan output can be used to observe Spark's logical and physical operations, including shuffle-related `Exchange` stages and join/sort operations chosen by Spark.
+### 1. Simple Aggregation
 
-### Final Exercise - JOIN + GROUPING + WINDOW
+Calculates:
 
-The final result combines customer and order information and displays:
+- Total sales
+- Average sale
+- Minimum sale
+- Maximum sale
+- Number of orders
 
-- customer ID
-- customer name
-- city
-- order ID
-- order amount
-- total spending for that customer
-- order rank within that customer
+Expected result:
 
-The total spending is calculated with a customer-partitioned window so that order-level detail is retained. The rank uses `row_number()` ordered by amount descending.
+```text
+Total sales:       300000
+Average sale:      37500
+Minimum sale:      15000
+Maximum sale:      60000
+Number of orders:  8
+```
 
-## Input Data
+### 2. Grouping Aggregation by Product
 
-The project creates the example DataFrames directly in Scala.
+Groups sales by product and calculates total sales, average sales, and order count.
 
-### Sales data
+```text
+Laptop -> Total: 210000, Average: 52500, Orders: 4
+Mobile -> Total:  90000, Average: 22500, Orders: 4
+```
 
-| order_id | customer | product | amount |
-|---:|---|---|---:|
-| 1 | Chintan | Laptop | 50000 |
-| 2 | Rahul | Mobile | 20000 |
-| 3 | Priya | Laptop | 60000 |
-| 4 | Amit | Mobile | 15000 |
-| 5 | Chintan | Mobile | 25000 |
-| 6 | Rahul | Laptop | 55000 |
-| 7 | Priya | Mobile | 30000 |
-| 8 | Amit | Laptop | 45000 |
+### 3. Customer Aggregation
 
-Simple aggregation result:
+Groups sales by customer and calculates total spending and number of orders.
 
-- Total sales: 300000
-- Average sale: 37500
-- Minimum sale: 15000
-- Maximum sale: 60000
-- Number of orders: 8
+```text
+Amit    -> 60000, 2 orders
+Chintan -> 75000, 2 orders
+Priya   -> 90000, 2 orders
+Rahul   -> 75000, 2 orders
+```
 
-### Customer and order data
+### 4. Window Aggregation
 
-Customers:
+Uses a customer-partitioned window ordered by `order_id` to calculate a running total while retaining every order row.
+
+### 5. Window Ranking
+
+Uses `row_number()` with a customer-partitioned window ordered by amount descending to rank each customer's orders.
+
+## Example 2 - Customer and Orders JOIN
+
+The project creates separate customer and order DataFrames.
+
+### Customer Data
 
 | customer_id | customer_name | city |
 |---:|---|---|
@@ -92,7 +125,7 @@ Customers:
 | 3 | Priya | Bangalore |
 | 4 | Amit | Delhi |
 
-Orders:
+### Order Data
 
 | order_id | customer_id | amount |
 |---:|---:|---:|
@@ -103,59 +136,46 @@ Orders:
 | 105 | 4 | 15000 |
 | 106 | 2 | 40000 |
 
-Customer totals:
+### Inner JOIN
 
-- Chintan: 75000 from 2 orders
-- Rahul: 60000 from 2 orders
-- Priya: 30000 from 1 order
-- Amit: 15000 from 1 order
+The DataFrames are joined using `customer_id`.
 
-## How to Run
+Expected customer totals after the join:
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/chinthavishnupriya/spark-aggregations-joins-windows.git
-cd spark-aggregations-joins-windows
+```text
+Chintan -> 75000 from 2 orders
+Rahul   -> 60000 from 2 orders
+Priya   -> 30000 from 1 order
+Amit    -> 15000 from 1 order
 ```
-
-### 2. Run with sbt
-
-```bash
-sbt run
-```
-
-The program runs locally with `local[*]` and prints the intermediate results and execution plans to the console.
-
-## Important Spark Concepts
-
-### Aggregation
-
-Aggregation reduces multiple rows into summary information using functions such as `sum`, `avg`, `min`, `max`, and `count`.
-
-### Grouping
-
-`groupBy` creates groups based on one or more columns and then applies aggregation functions to each group.
-
-### Window Function
-
-A window function calculates a value across related rows without collapsing those rows into one row. This is useful for running totals and rankings.
-
-### JOIN
-
-A join combines rows from different DataFrames using a common key. This project uses `customer_id` to connect customers with orders.
-
-### Shuffle and Sort
-
-For operations such as joins, grouping, and certain window operations, Spark may redistribute data between partitions. The execution plan can expose this through physical-plan operations such as `Exchange` and sorting operations.
 
 ### Execution Plan
 
-`explain(true)` prints the extended plan, allowing the logical and physical processing stages to be inspected rather than treating Spark SQL as a black box.
+The code uses:
 
-## Expected Final Output
+```scala
+joinedData.explain(true)
+```
 
-The final exercise produces rows equivalent to:
+This prints the extended logical and physical execution plan.
+
+For the small example DataFrames, Spark selected a `BroadcastHashJoin` in the physical plan. This is an optimization chosen for the small input size. The final exercise also shows `Exchange` and `Sort` stages associated with data redistribution and window processing.
+
+## Final Exercise - JOIN + GROUPING + WINDOW
+
+The final exercise combines customer and order information and produces:
+
+- Customer ID
+- Customer name
+- City
+- Order ID
+- Order amount
+- Total spending for the customer
+- Order rank within the customer
+
+The customer total is calculated with a customer-partitioned window so that order-level detail is retained. The ranking uses `row_number()` ordered by amount descending.
+
+Expected final result:
 
 ```text
 +-----------+-------------+---------+--------+------+--------------+----------+
@@ -170,6 +190,89 @@ The final exercise produces rows equivalent to:
 +-----------+-------------+---------+--------+------+--------------+----------+
 ```
 
-## Purpose
+## Important Spark Concepts
 
-This repository is a standalone implementation of the supplied Spark project specification and is intentionally kept separate from the other Spark projects in the GitHub account.
+### Aggregation
+
+Aggregation reduces multiple rows into summary information using functions such as `sum`, `avg`, `min`, `max`, and `count`.
+
+### Grouping
+
+`groupBy` creates groups based on one or more columns and then applies aggregation functions to each group.
+
+### Window Function
+
+A window function calculates values across related rows without collapsing those rows into one row. This is useful for running totals and rankings.
+
+### JOIN
+
+A join combines rows from different DataFrames using a common key. This project uses `customer_id` to connect customers with orders.
+
+### Shuffle
+
+A shuffle redistributes data between partitions. It can occur for operations that require rows with the same key to be brought together, including grouping and certain window operations.
+
+### Sort
+
+Spark may sort data to satisfy ordering requirements for joins or window operations. The physical plan can expose these stages.
+
+### Execution Plan
+
+`explain(true)` prints the extended plan, allowing the logical and physical processing stages to be inspected.
+
+## How to Run
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/chinthavishnupriya/spark-aggregations-joins-windows.git
+cd spark-aggregations-joins-windows
+```
+
+### 2. Compile
+
+```bash
+sbt compile
+```
+
+Expected result:
+
+```text
+[success] elapsed time: ...
+```
+
+### 3. Run
+
+```bash
+sbt run
+```
+
+The application runs Spark locally with `local[*]` and prints all example results and execution plans to the console.
+
+## Output Documentation
+
+The complete verified console output is stored in:
+
+**[`OUTPUT.md`](OUTPUT.md)**
+
+It includes the results of `sbt compile`, `sbt run`, all major DataFrame outputs, and execution-plan verification.
+
+## Source File
+
+Main Scala implementation:
+
+```text
+src/main/scala/AggregationsJoinsWindows.scala
+```
+
+## Verification Result
+
+```text
+sbt compile -> SUCCESS
+sbt run     -> SUCCESS
+Spark       -> 3.5.6
+Scala       -> 2.12.18
+Java        -> 17.0.20
+```
+
+The project is ready as a standalone Spark/Scala implementation of the supplied specification.
